@@ -1201,7 +1201,8 @@ class InstagramScraper(object):
             try:
                 files_path.append(file_path)
                 caption_file = {
-                    "caption": item['edge_media_to_caption']['edges'][0]['node']['text'],
+                    "username": item["username"],
+                    "text": item['edge_media_to_caption']['edges'][0]['node']['text'],
                     "filepath": file_path
                 }
                 self.captions.append(caption_file)
