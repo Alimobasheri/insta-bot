@@ -11,5 +11,3 @@ class Config:
 
     # Database
     SQLALCHEMY_DATABASE_URI = "sqlite:///instabot.db"
-    SQLALCHEMY_ECHO = False
-    SQLALCHEMY_TRACK_MODIFICATIONS = False

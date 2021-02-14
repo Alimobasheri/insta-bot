@@ -11,7 +11,7 @@ import json
 import logging.config
 import hashlib
 import os
-import pickrle
+import pickle
 import re
 import socket
 import sys
@@ -90,10 +90,10 @@ class InstagramScraper(object):
         default_attr = dict(username='', usernames=[], filename=None,
                             login_user=None, login_pass=None,
                             followings_input=False, followings_output='profiles.txt',
-                            destination='./', logger=None, retain_username=False, interactive=False,
+                            destination='./photos', logger=None, retain_username=False, interactive=False,
                             quiet=False, maximum=0, media_metadata=False, profile_metadata=False, latest=False,
                             latest_stamps=False, cookiejar=None, filter_location=None, filter_locations=None,
-                            media_types=['image', 'video', 'story-image', 'story-video', 'broadcast'],
+                            media_types=['image', 'video'],
                             tag=False, location=False, search_location=False, comments=False,
                             verbose=0, include_location=False, filter=None, proxies={}, no_check_certificate=False,
                                                         template='{urlname}', log_destination='')
@@ -107,12 +107,14 @@ class InstagramScraper(object):
                 self.__dict__[key] = default_attr.get(key)
 
         # story media type means story-image & story-video
+        '''
         if 'story' in self.media_types:
             self.media_types.remove('story')
             if 'story-image' not in self.media_types:
                 self.media_types.append('story-image')
             if 'story-video' not in self.media_types:
                 self.media_types.append('story-video')
+        '''
 
         # Read latest_stamps file with ConfigParser
         self.latest_stamps_parser = None
@@ -126,7 +128,7 @@ class InstagramScraper(object):
         # Set up a logger
         if self.logger is None:
             self.logger = InstagramScraper.get_logger(level=logging.DEBUG, dest=default_attr.get('log_destination'), verbose=default_attr.get('verbose'))
-
+        
         self.posts = []
         self.stories = []
 
@@ -320,13 +322,12 @@ class InstagramScraper(object):
     def get_dst_dir(self, username):
         """Gets the destination directory and last scraped file time."""
         if self.destination == './':
-            dst = './' + username
+            dst = './photos/' + username
         else:
             if self.retain_username:
                 dst = self.destination + '/' + username
             else:
                 dst = self.destination
-
         # Resolve last scraped filetime
         if self.latest_stamps_parser:
             self.last_scraped_filemtime = self.get_last_scraped_timestamp(username)
@@ -460,8 +461,10 @@ class InstagramScraper(object):
         self.quit = False
         try:
             for value in self.usernames:
+                '''
                 self.posts = []
                 self.stories = []
+                '''
                 self.last_scraped_filemtime = 0
                 greatest_timestamp = 0
                 future_to_item = {}
@@ -762,6 +765,8 @@ class InstagramScraper(object):
         self.save_json(item, '{0}/{1}.json'.format(dst, username))
 
     def get_stories(self, dst, executor, future_to_item, user, username):
+        return None
+        '''
         """Scrapes the user's stories."""
         if self.logged_in and \
                 ('story-image' in self.media_types or 'story-video' in self.media_types):
@@ -783,6 +788,7 @@ class InstagramScraper(object):
                 iter = iter + 1
                 if self.maximum != 0 and iter >= self.maximum:
                     break
+        '''
 
     def get_broadcasts(self, dst, executor, future_to_item, user):
         """Scrapes the user's broadcasts."""
@@ -972,12 +978,14 @@ class InstagramScraper(object):
             try:
                 while True:
                     for item in media:
-                        if not self.is_new_media(item):
+                        #>>>>>>>>
+                        if not self.is_new_media(item) and item['edge_media_to_caption']['edges'][0]['node']['text'] is None:
                             return
                         yield item
-
+'''
                     if end_cursor:
                         media, end_cursor = self.__query_media(user['id'], end_cursor)
+                        '''
                     else:
                         return
             except ValueError:
@@ -1088,7 +1096,6 @@ class InstagramScraper(object):
             save_dir = os.path.join(save_dir, self.get_key_from_value(self.filter_locations, item["location"]["id"]))
 
         files_path = []
-
         for full_url, base_name in self.templatefilename(item):
             url = full_url.split('?')[0] #try the static url first, stripping parameters
 
@@ -1200,10 +1207,12 @@ class InstagramScraper(object):
                     os.utime(file_path, (file_time, file_time))
             try:
                 files_path.append(file_path)
+                datetime = time.strftime('%Y%m%d %Hh%Mm%Ss', time.localtime(self.__get_timestamp(item)))
                 caption_file = {
                     "username": item["username"],
                     "text": item['edge_media_to_caption']['edges'][0]['node']['text'],
-                    "filepath": file_path
+                    "filepath": file_path,
+                    'datetime': datetime
                 }
                 self.captions.append(caption_file)
             except Exception as e:

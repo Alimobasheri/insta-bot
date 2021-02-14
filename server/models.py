@@ -10,14 +10,15 @@ class User(db.Model):
 
 class Caption(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    text = db.Column(db.String(120), unique=True, nullable=False)
-    file_path = db.Column(db.String(120), unique=True, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'),
+    text = db.Column(db.String(120), unique=False, nullable=False)
+    filePath = db.Column(db.String(120), unique=False, nullable=False)
+    dateTime = db.Column(db.DateTime, nullable=False)
+    userId = db.Column(db.Integer, db.ForeignKey('user.id'),
         nullable=False)
 
-class Settings(db.Model):
+class Updates(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    is_updating =  db.Column(db.Boolean, unique=True, nullable=False)
+    isUpdating =  db.Column(db.String(5), unique=False, nullable=False)
 class FakeUser(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)

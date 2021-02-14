@@ -1,5 +1,5 @@
 from instagram_scraper import InstagramScraper
-
+import requests
 import json
 
 class InstaBot(InstagramScraper):
@@ -7,7 +7,7 @@ class InstaBot(InstagramScraper):
         super().__init__(usernames=users, login_user=username, login_pass=password)
     
     def save_captions(self):
-        return self.captions
+        requests.post("http://127.0.0.1:5000/api/insta/users-captions-json", json=self.captions)
 
 ''' Example
 bot = InstaBot(user="jzarif_ir", username="amade_nabard", password="gogoshbash1380")

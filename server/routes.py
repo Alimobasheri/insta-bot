@@ -1,11 +1,13 @@
 from flask import current_app as app
 from flask import request
 import json
+from datetime import datetime
 
 from . import db
-from server.models import User, Caption, FakeUser, Settings
+from server.models import User, Caption, FakeUser, Updates
 
 from . import InstaBot
+
 
 @app.route('/')
 def index():
@@ -15,6 +17,7 @@ def index():
     responseJSON = json.dumps(response)
     return responseJSON, 400
 
+
 @app.route('/api/insta')
 def InstaApi():
     response = {
@@ -22,7 +25,7 @@ def InstaApi():
     }
     return json.dumps(response), 400
 
-@app.route('/api/insta/set-fakeuser')
+
 @app.route('/api/insta/set-fakeuser')
 def SetInstaFakeuser():
     username = request.args.get("username")
@@ -43,21 +46,22 @@ def SetInstaFakeuser():
             "password": user.password
         }
         return json.dumps(response), 200
-    user.usrname = username
+    user.username = username
     user.password = password
     try:
+        db.session.add(user)
         db.session.commit()
     except Exception as e:
         error_res = {
             "error": "Could not update DB. Try again"
         }
         return json.dumps(error_res), 500
-    respnse = {
+    response = {
         "message": "username set seuccessfully."
     }
-    return json.dumps(respnse), 200
+    return json.dumps(response), 200
 
-@app.route('/api/insta/get-fakeuser')
+
 @app.route('/api/insta/get-fakeuser')
 def GetInstaFakeuser():
     user = FakeUser.query.get(1)
@@ -72,6 +76,7 @@ def GetInstaFakeuser():
     }
     return json.dumps(response), 200
 
+
 @app.route('/api/insta/add-users')
 def AddInstaTargetUser():
     users = request.args.get("users")
@@ -80,14 +85,18 @@ def AddInstaTargetUser():
             "error": "Please provide new target users in query parameteres."
         }
         return json.dumps(error), 400
-    
+
     users_lst = users.split(",")
     for user in users_lst:
+        user_exists = User.query.filter_by(username=user).first()
+        if user_exists is not None:
+            continue
         try:
             new_user = User(username=user)
             db.session.add(new_user)
             db.session.commit()
         except Exception as e:
+            print(e)
             error_response = {
                 "error": "Failed to add target user to db. Try Again!"
             }
@@ -97,6 +106,7 @@ def AddInstaTargetUser():
         "users": users
     }
     return json.dumps(response), 200
+
 
 @app.route('/api/insta/get-users')
 def GetInstaTargetUsers():
@@ -128,6 +138,7 @@ def GetInstaTargetUsers():
     }
     return json.dumps(response), 200
 
+
 @app.route('/api/insta/delete-users')
 def DeleteInstaTargetUser():
     users = request.args.get("users")
@@ -136,7 +147,7 @@ def DeleteInstaTargetUser():
             "error": "Please provide users to be deleted in query parameteres."
         }
         return json.dumps(error), 400
-    
+
     users_lst = users.split(",")
     for user in users_lst:
         try:
@@ -149,44 +160,61 @@ def DeleteInstaTargetUser():
             }
             return json.dumps(error_response), 500
     response = {
-        "message": "Target users were successfully dleted from db.",
+        "message": "Target users were successfully deleted from db.",
         "deleted_users": users
     }
     return json.dumps(response), 200
 
+
 @app.route('/api/insta/update')
 def UpdateCaptions():
-    settings = Settings.query.get(1)
-    if settings is None:
-        setting = Settings(is_updating=False)
+    app_settings = Updates.query.get(1)
+    if app_settings is None:
+        setting = Updates(isUpdating="FALSE")
         db.session.add(setting)
         db.session.commit()
-    settings = Settings.query.get(1)
-    if settings.is_updating is True:
+    app_settings = Updates.query.get(1)
+    if app_settings.isUpdating is "TRUE":
         error_response = {
             "error": "An update is in progress on the server. Try Later!"
         }
         return json.dumps(error_response), 500
+    '''
     users = request.args.get("users")
     if users is not None:
         users_lst = users.split(",")
-        # update_captions = update_captions_in_db(users)
-        scraper = InstaBot()
-        settings.is_updating = True
-        db.session.add(settings)
+        target_users = 
+        fakeuser = FakeUser.query.get(1)
+        scraper = InstaBot(
+            users=[u.username for u in target_users], 
+            username=fakeuser.username,
+            password=fakeuser.password)
+        scraper.test()
+        app_settings.isUpdating = "TRUE"
+        db.session.add(app_settings)
         db.session.commit()
         response = {
             "message": "Captions are being updated successfully"
         }
         return json.dumps(response), 200
-    # update_captions = update_all_captions_in_db()
-    setting.is_updating = True
-    db.session.add(settings)
+    '''
+    target_users = db.session.query(User).all()
+    fakeuser = FakeUser.query.get(1)
+    scraper = InstaBot(
+        users=[u.username for u in target_users], 
+        username=fakeuser.username,
+        password=fakeuser.password)
+    scraper.authenticate_with_login()
+    scraper.scrape()
+    scraper.save_cookies()
+    app_settings.isUpdating = "TRUE"
+    db.session.add(app_settings)
     db.session.commit()
     response = {
         "message": "Captions are being updated successfully"
     }
     return json.dumps(response), 200
+
 
 @app.route('/api/insta/users-captions-json', methods=["POST"])
 def SaveCaptions():
@@ -196,32 +224,43 @@ def SaveCaptions():
         }
         return json.dumps(error_response), 400
     try:
-        settings = Settings.query.get(1)
+        app_settings = Updates.query.get(1)
     except:
-        setting = Settings(is_updating=False)
-        db.session.add(setting)
+        app_settings = Updates(isUpdating="FALSE")
+        db.session.add(app_settings)
         db.session.commit()
     body = request.json
     print(body)
     try:
         for caption in body:
-            user = User.query.filter_by(username=caption["username"]).first()
-            new_caption = Caption(text=caption["text"], file_path=caption["filepath"], user_id=user.id)
+            print(caption)
+            user = User.query.filter_by(username=caption["username"]).all()[0]
+            # print(user)
+            new_caption = Caption(
+                text=caption["text"], 
+                filePath=caption["filepath"], 
+                userId=user.id, 
+                dateTime=datetime.strptime(caption["datetime"], '%Y%m%d %Hh%Mm%Ss')
+            )
+            print(new_caption.text)
             db.session.add(new_caption)
             db.session.commit()
-    except:
+    except Exception as e:
+        print(e)
         error_response = {
             "error": "Captions could not be saved. Data Is Lost!"
         }
         return json.dumps(error_response), 500
-    settings = Settings.query.get(1)
-    settings.is_updating = False
-    db.session.add(settings)
-    db.session.commit()
+    app_settings = Updates.query.get(1)
+    if app_settings is not None:
+        app_settings.isUpdating = "FALSE"
+        db.session.add(app_settings)
+        db.session.commit()
     response = {
         "message": "Captions were saved succefssfully."
     }
     return json.dumps(response), 200
+
 
 @app.route('/api/insta/get-feed')
 def GetFeed():
@@ -232,22 +271,22 @@ def GetFeed():
         }
         return json.dumps(error_response), 400
     captions = {}
-    for user in users:
+    for user in users.split(","):
         try:
             caption_user = User.query.filter_by(username=user).first()
             if caption_user is not None:
                 captions[user] = []
-                for cap in caption_user.captions:
+                ordered_caps = sorted(caption_user.captions, key=lambda x : x.dateTime, reverse=True)
+                for cap in ordered_caps:
                     captions[user].append({
                         'text': cap.text,
-                        'file_path': cap.file_path
+                        'filePath': cap.filePath
                     })
         except Exception as e:
-            print(e)
             error_res = {
                 "error": "User could not be found or DB error."
             }
-            return json.dumps(error_res), 500 
+            return json.dumps(error_res), 500
     response = {
         "message": "Successfully loaded all user captions.",
         "captions": captions

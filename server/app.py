@@ -9,12 +9,16 @@ from . import db
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+
+    app.config["SQLALCHEMY_ECHO"] = True
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    db.init_app(app)
+
     app.config.from_mapping(
         DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
     )
     app.config.from_object('server.config.Config')
-
-    db.init_app(app)
 
     # ensure the instance folder exists
     try:
