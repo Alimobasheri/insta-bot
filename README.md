@@ -103,7 +103,7 @@
     {
         "message": "Successfully loaded all user captions.",
         "captions": {
-                "jzarif_ir": [
+            "jzarif_ir": [
                 {
                     "text": "caption text",
                     "filepath": "/path/to/media_file/on_server.jpg"
