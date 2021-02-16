@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import argparse
 import codecs
 import configparser
 import errno
@@ -97,8 +96,10 @@ class InstagramScraper(object):
                             tag=False, location=False, search_location=False, comments=False,
                             verbose=0, include_location=False, filter=None, proxies={}, no_check_certificate=False,
                                                         template='{urlname}', log_destination='')
+        # Handled by me
         self.captions = []
         self.files_path = []
+
         allowed_attr = list(default_attr.keys())
         default_attr.update(kwargs)
 
@@ -321,13 +322,7 @@ class InstagramScraper(object):
 
     def get_dst_dir(self, username):
         """Gets the destination directory and last scraped file time."""
-        if self.destination == './':
-            dst = './photos/' + username
-        else:
-            if self.retain_username:
-                dst = self.destination + '/' + username
-            else:
-                dst = self.destination
+        dst = './photos/' + username
         # Resolve last scraped filetime
         if self.latest_stamps_parser:
             self.last_scraped_filemtime = self.get_last_scraped_timestamp(username)
@@ -880,6 +875,8 @@ class InstagramScraper(object):
         return userinfo
 
     def __fetch_stories(self, url, fetching_highlights_metadata=False):
+        # Handled by me
+        return []
         resp = self.get_json(url)
 
         if resp is not None:
@@ -982,10 +979,9 @@ class InstagramScraper(object):
                         if not self.is_new_media(item) and item['edge_media_to_caption']['edges'][0]['node']['text'] is None:
                             return
                         yield item
-'''
                     if end_cursor:
                         media, end_cursor = self.__query_media(user['id'], end_cursor)
-                        '''
+                    
                     else:
                         return
             except ValueError:

@@ -179,17 +179,21 @@ def UpdateCaptions():
             "error": "An update is in progress on the server. Try Later!"
         }
         return json.dumps(error_response), 500
-    '''
-    users = request.args.get("users")
-    if users is not None:
-        users_lst = users.split(",")
-        target_users = 
+    user = request.args.get("user")
+    if user is not None:
+        user_exists = Users.query.filter_by(username=user).first()
+        if user_exists is None:
+            error_response = {
+                "error": "User doesn't exist in target users."
+            }
+            return json.dumps(error_response), 500
         fakeuser = FakeUser.query.get(1)
         scraper = InstaBot(
             users=[u.username for u in target_users], 
             username=fakeuser.username,
             password=fakeuser.password)
-        scraper.test()
+        scraper.scrape()
+        craper.save_cookies()
         app_settings.isUpdating = "TRUE"
         db.session.add(app_settings)
         db.session.commit()
@@ -197,7 +201,6 @@ def UpdateCaptions():
             "message": "Captions are being updated successfully"
         }
         return json.dumps(response), 200
-    '''
     target_users = db.session.query(User).all()
     fakeuser = FakeUser.query.get(1)
     scraper = InstaBot(
