@@ -95,7 +95,6 @@ def AddInstaTargetUser():
             db.session.add(new_user)
             db.session.commit()
         except Exception as e:
-            print(e)
             error_response = {
                 "error": "Failed to add target user to db. Try Again!"
             }
@@ -231,23 +230,18 @@ def SaveCaptions():
         db.session.add(app_settings)
         db.session.commit()
     body = request.json
-    print(body)
     try:
         for caption in body:
-            print(caption)
             user = User.query.filter_by(username=caption["username"]).all()[0]
-            # print(user)
             new_caption = Caption(
                 text=caption["text"], 
                 filePath=caption["filepath"], 
                 userId=user.id, 
                 dateTime=datetime.strptime(caption["datetime"], '%Y%m%d %Hh%Mm%Ss')
             )
-            print(new_caption.text)
             db.session.add(new_caption)
             db.session.commit()
     except Exception as e:
-        print(e)
         error_response = {
             "error": "Captions could not be saved. Data Is Lost!"
         }
