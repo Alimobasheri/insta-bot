@@ -18,6 +18,7 @@ import textwrap
 import time
 import xml.etree.ElementTree as ET
 import moviepy.editor as mpe
+import requests
 
 try:
     from urllib.parse import urlparse
@@ -31,7 +32,7 @@ import requests
 import requests.packages.urllib3.util.connection as urllib3_connection
 import tqdm
 
-from instagram_scraper.constants import *
+from .constants import *
 
 try:
     reload(sys)  # Python 2.7
@@ -186,6 +187,10 @@ class InstagramScraper(object):
             else:
                 self.logger.info( 'The user has chosen to abort' )
                 return None
+    
+    def save_captions(self):
+        print("got here")
+        requests.post("http://127.0.0.1:5000/api/insta/users-captions-json", json=self.captions)
 
     def safe_get(self, *args, **kwargs):
         # out of the box solution
@@ -624,6 +629,7 @@ class InstagramScraper(object):
     def scrape(self, executor=concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONCURRENT_DOWNLOADS)):
         """Crawls through and downloads user's media"""
         self.session.headers.update({'user-agent': STORIES_UA})
+        print("fuck we are here")
         try:
             for username in self.usernames:
                 self.posts = []
@@ -676,6 +682,7 @@ class InstagramScraper(object):
                 except ValueError:
                     self.logger.error("Unable to scrape user - %s" % username)
         finally:
+            self.save_captions()
             self.quit = True
             self.logout()
 
@@ -761,29 +768,6 @@ class InstagramScraper(object):
 
     def get_stories(self, dst, executor, future_to_item, user, username):
         return None
-        '''
-        """Scrapes the user's stories."""
-        if self.logged_in and \
-                ('story-image' in self.media_types or 'story-video' in self.media_types):
-            # Get the user's stories.
-            all_stories = []
-            all_stories.extend(self.fetch_main_stories(user['id']))
-            all_stories.extend(self.fetch_highlight_stories(user['id']))
-
-            # Downloads the user's stories and sends it to the executor.
-            iter = 0
-            for item in tqdm.tqdm(all_stories, desc='Searching {0} for stories'.format(username), unit=" media",
-                                  disable=self.quiet):
-                if self.story_has_selected_media_types(item) and self.is_new_media(item):
-                    item['username'] = username
-                    item['shortcode'] = ''
-                    future = executor.submit(self.worker_wrapper, self.download, item, dst)
-                    future_to_item[future] = item
-
-                iter = iter + 1
-                if self.maximum != 0 and iter >= self.maximum:
-                    break
-        '''
 
     def get_broadcasts(self, dst, executor, future_to_item, user):
         """Scrapes the user's broadcasts."""
@@ -976,7 +960,7 @@ class InstagramScraper(object):
                 while True:
                     for item in media:
                         #>>>>>>>>
-                        if not self.is_new_media(item) and item['edge_media_to_caption']['edges'][0]['node']['text'] is None:
+                        if not self.is_new_media(item):
                             return
                         yield item
                     if end_cursor:
@@ -1096,7 +1080,7 @@ class InstagramScraper(object):
             url = full_url.split('?')[0] #try the static url first, stripping parameters
 
             file_path = os.path.join(save_dir, base_name)
-
+            print("came to download")
             if not os.path.exists(os.path.dirname(file_path)):
                 self.make_dir(os.path.dirname(file_path))
 
@@ -1112,6 +1096,7 @@ class InstagramScraper(object):
                         retry_delay = RETRY_DELAY
                         while (True):
                             if self.quit:
+                                self.save_captions()
                                 return
                             try:
                                 downloaded_before = downloaded
@@ -1158,6 +1143,7 @@ class InstagramScraper(object):
                                             downloaded += len(chunk)
                                             media_file.write(chunk)
                                         if self.quit:
+                                            self.save_captions()
                                             return
 
                                 if downloaded != total_length and total_length is not None:
@@ -1201,19 +1187,16 @@ class InstagramScraper(object):
                     timestamp = self.__get_timestamp(item)
                     file_time = int(timestamp if timestamp else time.time())
                     os.utime(file_path, (file_time, file_time))
-            try:
-                files_path.append(file_path)
-                datetime = time.strftime('%Y%m%d %Hh%Mm%Ss', time.localtime(self.__get_timestamp(item)))
-                caption_file = {
-                    "username": item["username"],
-                    "text": item['edge_media_to_caption']['edges'][0]['node']['text'],
-                    "filepath": file_path,
-                    'datetime': datetime
-                }
-                self.captions.append(caption_file)
-            except Exception as e:
-                print(e) 
-        self.save_captions()
+
+                    files_path.append(file_path)
+                    datetime = time.strftime('%Y%m%d %Hh%Mm%Ss', time.localtime(self.__get_timestamp(item)))
+                    caption_file = {
+                        "username": item["username"],
+                        "text": item['edge_media_to_caption']['edges'][0]['node']['text'],
+                        "filepath": file_path,
+                        'datetime': datetime
+                    }
+                    self.captions.append(caption_file)
         return files_path
 
     def dowload_broadcast(self, item, save_dir='./'):

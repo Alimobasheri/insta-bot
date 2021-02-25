@@ -1,6 +1,5 @@
 from flask import current_app as app
-from flask import request
-import json
+from flask import request, json
 from datetime import datetime
 
 from . import db
@@ -165,7 +164,6 @@ def DeleteInstaTargetUser():
     }
     return json.dumps(response), 200
 
-
 @app.route('/api/insta/update')
 def UpdateCaptions():
     app_settings = Updates.query.get(1)
@@ -193,7 +191,7 @@ def UpdateCaptions():
             username=fakeuser.username,
             password=fakeuser.password)
         scraper.scrape()
-        craper.save_cookies()
+        scraper.save_cookies()
         app_settings.isUpdating = "TRUE"
         db.session.add(app_settings)
         db.session.commit()
@@ -294,4 +292,4 @@ def GetFeed():
         "message": "Successfully loaded all user captions.",
         "captions": captions
     }
-    return json.dumps(response), 200
+    return json.dumps(response, ensure_ascii=False), 200
