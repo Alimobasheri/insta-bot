@@ -189,7 +189,6 @@ class InstagramScraper(object):
                 return None
     
     def save_captions(self):
-        print("got here")
         requests.post("http://127.0.0.1:5000/api/insta/users-captions-json", json=self.captions)
 
     def safe_get(self, *args, **kwargs):
@@ -629,7 +628,6 @@ class InstagramScraper(object):
     def scrape(self, executor=concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONCURRENT_DOWNLOADS)):
         """Crawls through and downloads user's media"""
         self.session.headers.update({'user-agent': STORIES_UA})
-        print("fuck we are here")
         try:
             for username in self.usernames:
                 self.posts = []
@@ -1080,7 +1078,6 @@ class InstagramScraper(object):
             url = full_url.split('?')[0] #try the static url first, stripping parameters
 
             file_path = os.path.join(save_dir, base_name)
-            print("came to download")
             if not os.path.exists(os.path.dirname(file_path)):
                 self.make_dir(os.path.dirname(file_path))
 
